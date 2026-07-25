@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>IT Support Agent · Helpdesk AI</title>
+
+    <!-- Font & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        /* ---------- RESET & BASE ---------- */
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0b0d15;
+            --bg-secondary: #131722;
+            --bg-card: #1a1f2e;
+            --bg-input: #232838;
+            --bg-hover: #2a3042;
+            --border-color: #2d3448;
+            --text-primary: #eef2ff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #3b82f6;
+            --accent-light: #60a5fa;
+            --accent-glow: rgba(59, 130, 246, 0.25);
+            --user-msg: #3b82f6;
+            --user-msg-text: #ffffff;
+            --agent-msg: #1e2438;
+            --agent-msg-text: #e2e8f0;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            --radius: 18px;
+            --radius-sm: 12px;
+            --radius-full: 999px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        html,
+        body {
+            height: 100%;
+            font-family: var(--font);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow: hidden;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent);
+            border-radius: 10px;
+        }
+
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 820px;
+            margin: 0 auto;
+            background: var(--bg-secondary);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+
+        #app.rtl {
+            direction: rtl;
+        }
+        #app.rtl .message.user {
+            flex-direction: row-reverse;
+        }
+        #app.rtl .message .bubble {
+            text-align: right;
+        }
+        #app.rtl .header-left {
+            flex-direction: row-reverse;
+        }
+        #app.rtl .input-wrapper {
+            flex-direction: row-reverse;
+        }
+        #app.rtl .input-wrapper textarea {
+            text-align: right;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 24px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            flex-shrink: 0;
+            z-index: 10;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .agent-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #93c5fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+            box-shadow: 0 0 20px var(--accent-glow);
+            user-select: none;
+        }
+
+        .agent-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .agent-name {
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
+        }
+
+        .agent-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            display: inline-block;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .status-dot.offline {
+            background: #f87171;
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.6;
+                transform: scale(0.85);
+            }
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .header-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .header-btn.lang-btn {
+            font-weight: 600;
+            font-size: 14px;
+            width: auto;
+            padding: 0 12px;
+            border-radius: var(--radius-full);
+            background: var(--bg-input);
+            color: var(--text-primary);
+        }
+        .header-btn.lang-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 88%;
+            animation: msg-in 0.3s ease-out;
+        }
+
+        @keyframes msg-in {
+            from {
+                opacity: 0;
+                transform: translateY(12px) scale(0.97);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            user-select: none;
+        }
+
+        .message .avatar.user-avatar {
+            background: var(--accent);
+            color: #fff;
+        }
+
+        .message .avatar.agent-avatar-small {
+            background: linear-gradient(135deg, var(--accent), #93c5fd);
+            color: #fff;
+            font-size: 11px;
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            line-height: 1.6;
+            font-size: 14.5px;
+            word-break: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            position: relative;
+        }
+
+        .message.user .bubble {
+            background: var(--user-msg);
+            color: var(--user-msg-text);
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.agent .bubble {
+            background: var(--agent-msg);
+            color: var(--agent-msg-text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .bubble .msg-time {
+            font-size: 10px;
+            opacity: 0.5;
+            margin-top: 6px;
+            display: block;
+            text-align: right;
+            letter-spacing: 0.3px;
+        }
+
+        .message.user .bubble .msg-time {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0 4px;
+            animation: msg-in 0.3s ease-out;
+        }
+
+        .typing-indicator.active {
+            display: flex;
+        }
+
+        .typing-indicator .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #93c5fd);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 5px;
+            padding: 10px 18px;
+            background: var(--agent-msg);
+            border-radius: var(--radius);
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-secondary);
+            animation: typing-bounce 1.4s infinite both;
+        }
+
+        .typing-dots span:nth-child(1) {
+            animation-delay: 0s;
+        }
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing-bounce {
+            0%,
+            60%,
+            100% {
+                transform: translateY(0);
+                opacity: 0.4;
+            }
+            30% {
+                transform: translateY(-8px);
+                opacity: 1;
+            }
+        }
+
+        .empty-state {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            gap: 12px;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 52px;
+            background: linear-gradient(135deg, var(--accent), #93c5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .empty-state h2 {
+            font-weight: 600;
+            font-size: 20px;
+            color: var(--text-primary);
+            -webkit-text-fill-color: var(--text-primary);
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            max-width: 340px;
+            line-height: 1.6;
+        }
+
+        .empty-state .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .empty-state .suggestions button {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+        }
+
+        .empty-state .suggestions button:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .input-area {
+            padding: 14px 20px 18px;
+            background: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            flex-shrink: 0;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .input-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            background: var(--bg-input);
+            border-radius: var(--radius);
+            padding: 4px 6px 4px 16px;
+            border: 1px solid transparent;
+            transition: var(--transition);
+        }
+
+        .input-wrapper:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .input-wrapper textarea {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: var(--font);
+            font-size: 14px;
+            resize: none;
+            padding: 10px 0;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.5;
+        }
+
+        .input-wrapper textarea::placeholder {
+            color: var(--text-muted);
+        }
+
+        .input-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 0;
+        }
+
+        .input-btn {
+            width: 38px;
+            height: 38px;
+            border: none;
+            border-radius: 50%;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .input-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .input-btn.send-btn {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+
+        .input-btn.send-btn:hover {
+            background: var(--accent-light);
+            transform: scale(1.05);
+        }
+
+        .input-btn.send-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        @media (max-width: 600px) {
+            #app {
+                max-width: 100%;
+                border-radius: 0;
+            }
+            .chat-header {
+                padding: 12px 16px;
+            }
+            .messages-container {
+                padding: 14px 14px 8px;
+            }
+            .message {
+                max-width: 94%;
+            }
+            .input-area {
+                padding: 10px 12px 14px;
+                gap: 8px;
+            }
+            .input-wrapper {
+                padding: 2px 4px 2px 12px;
+            }
+            .input-wrapper textarea {
+                font-size: 13px;
+                padding: 8px 0;
+            }
+            .input-btn {
+                width: 34px;
+                height: 34px;
+                font-size: 14px;
+            }
+            .bubble {
+                font-size: 13.5px;
+                padding: 10px 14px;
+            }
+            .empty-state .icon {
+                font-size: 40px;
+            }
+            .empty-state h2 {
+                font-size: 17px;
+            }
+            .agent-name {
+                font-size: 14px;
+            }
+            .agent-avatar {
+                width: 38px;
+                height: 38px;
+                font-size: 17px;
+            }
+            .header-btn.lang-btn {
+                font-size: 12px;
+                padding: 0 8px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .message {
+                max-width: 98%;
+            }
+            .messages-container {
+                padding: 10px 10px 6px;
+            }
+            .bubble {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+            .input-area {
+                padding: 8px 8px 12px;
+            }
+            .empty-state .suggestions button {
+                font-size: 12px;
+                padding: 6px 12px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .copy-btn {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-full);
+            color: var(--text-secondary);
+            padding: 4px 14px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-family: var(--font);
+            margin-top: 8px;
+            display: inline-block;
+        }
+        .copy-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+        .copy-btn i {
+            margin-right: 4px;
+        }
+        #app.rtl .copy-btn i {
+            margin-right: 0;
+            margin-left: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app">
+
+        <header class="chat-header">
+            <div class="header-left">
+                <div class="agent-avatar">🖥️</div>
+                <div class="agent-info">
+                    <span class="agent-name" id="agentName">IT Support Agent</span>
+                    <span class="agent-status">
+                        <span class="status-dot" id="statusDot"></span>
+                        <span id="statusText">Online</span>
+                    </span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="header-btn lang-btn" id="langToggle" title="Toggle language">AR</button>
+                <button class="header-btn" id="clearBtn" title="Clear chat" aria-label="Clear chat">
+                    <i class="fas fa-eraser"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="messages-container" id="messagesContainer">
+            <div class="empty-state" id="emptyState">
+                <div class="icon">🖥️</div>
+                <h2 id="emptyTitle">IT Support Assistant</h2>
+                <p id="emptyDesc">Hi, I'm your IT Support Agent. I follow a structured troubleshooting process: identify your system, search the knowledge base, provide solutions, and escalate if needed.</p>
+                <div class="suggestions" id="suggestionsContainer">
+                    <!-- populated by JS -->
+                </div>
+            </div>
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="avatar">🖥️</div>
+                <div class="typing-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <textarea id="messageInput" rows="1" placeholder="Describe your IT issue…" aria-label="Message input"></textarea>
+            </div>
+            <button class="input-btn send-btn" id="sendBtn" aria-label="Send message" title="Send">
+                <i class="fas fa-arrow-up"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <script>
+        // ================================================================
+        //  IT SUPPORT AGENT – Structured Problem-Solving Workflow
+        //  Using DeepSeek V4 (deepseek-v4) by default
+        //  Steps: 1. Identify System → 2. Search KB → 3. Provide Solutions
+        //         4. If persists → Generate Report → Escalate to Technician
+        //  NO MANUAL TICKET BUTTON – escalation handles reporting
+        // ================================================================
+
+        (() => {
+            'use strict';
+
+            // ---------- DOM refs ----------
+            const messagesContainer = document.getElementById('messagesContainer');
+            const emptyState = document.getElementById('emptyState');
+            const typingIndicator = document.getElementById('typingIndicator');
+            const messageInput = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const langToggle = document.getElementById('langToggle');
+            const agentName = document.getElementById('agentName');
+            const emptyTitle = document.getElementById('emptyTitle');
+            const emptyDesc = document.getElementById('emptyDesc');
+            const suggestionsContainer = document.getElementById('suggestionsContainer');
+            const app = document.getElementById('app');
+
+            // ---------- State ----------
+            let currentLang = 'en';
+            let conversationHistory = [];
+            let userName = null;
+            let userContext = {};
+
+            // DeepSeek API settings – using DeepSeek V4
+            const DEFAULT_DEEPSEEK_KEY = 'sk-abcdef1234567890abcdef1234567890abcdef12';
+            let deepseekApiKey = localStorage.getItem('deepseekApiKey') || DEFAULT_DEEPSEEK_KEY;
+            let deepseekModel = localStorage.getItem('deepseekModel') || 'deepseek-v4';
+
+            // Telegram settings
+            const DEFAULT_BOT_TOKEN = '8929546447:AAGmMpnZL1CA5ShpWM52paDInDGCUz0RbGY';
+            const DEFAULT_CHAT_ID = '928047928';
+            let botToken = localStorage.getItem('telegramBotToken') || DEFAULT_BOT_TOKEN;
+            let chatId = localStorage.getItem('telegramChatId') || DEFAULT_CHAT_ID;
+            const botUsername = '@ITsupport4564465bot';
+
+            // ---------- Session State (Problem-Solving Workflow) ----------
+            let session = {
+                step: 'initial', // 'initial' | 'identifying' | 'solutions' | 'escalating'
+                systemName: '',
+                systemType: '',
+                issueDescription: '',
+                kbResults: [],
+                solutionSteps: [],
+                solutionIndex: 0,
+                attemptedSolutions: [],
+                report: null,
+                ticketCreated: false
+            };
+
+            // ---------- UI Translations ----------
+            const UI = {
+                en: {
+                    agentName: 'IT Support Agent',
+                    statusOnline: 'Online',
+                    statusOffline: 'Connecting…',
+                    emptyTitle: 'IT Support Assistant',
+                    emptyDesc: "Hi, I'm your IT Support Agent. I follow a structured troubleshooting process: identify your system, search the knowledge base, provide solutions, and escalate if needed.",
+                    inputPlaceholder: 'Describe your IT issue…',
+                    suggestions: [
+                        { prompt: "I can't log in to my account", label: '🔑 Login issue' },
+                        { prompt: 'My WiFi is not working', label: '📶 WiFi down' },
+                        { prompt: 'How do I install Microsoft Office?', label: '📦 Software install' },
+                        { prompt: 'VPN connection failed', label: '🔒 VPN help' },
+                        { prompt: 'My computer is slow', label: '🐌 Slow PC' }
+                    ],
+                    sendAria: 'Send message',
+                    clearTitle: 'Clear chat',
+                    langToggleLabel: 'AR',
+                    // Workflow prompts
+                    askSystem: 'Let me troubleshoot this for you. First, can you tell me:\n1. What system or device are you using? (e.g., Windows laptop, Mac, iPhone, network router)\n2. What specific software or service is involved? (e.g., Outlook, VPN, Office 365)\n3. Please describe the issue in detail.',
+                    askSystemShort: 'Please tell me about the system and the issue you\'re experiencing.',
+                    identifying: '🔍 **Identifying your system...**',
+                    kbSearching: '📚 **Searching the knowledge base for solutions...**',
+                    solutionsHeader: '💡 **Solution Steps**',
+                    solutionStep: (num, step) => `**Step ${num}:** ${step}`,
+                    afterSolutions: 'Please try these steps and let me know if the issue is resolved. Reply with **resolved** or **still having issues**.',
+                    escalatePrompt: 'I\'m sorry to hear the issue persists. I\'ll generate a detailed report and escalate this to a support technician.',
+                    reportGenerated: (report) => `📋 **Technician Report**\n\n${report}`,
+                    reportSent: (ref) => `✅ **Report submitted!** Reference #${ref}. A technician will review your case and follow up shortly.`,
+                    escalationCancelled: 'Alright. Let me know if you need further assistance.',
+                    resolved: '✅ Great! I\'m glad the issue is resolved. If you need help with anything else, just let me know.',
+                    noSystemInfo: 'I need more information about your system to help you. Please tell me what device or software you\'re using and describe the problem.',
+                    copyLabel: '📋 Copy details',
+                    copied: 'Copied!',
+                },
+                ar: {
+                    agentName: 'وكيل الدعم الفني',
+                    statusOnline: 'متصل',
+                    statusOffline: 'جاري الاتصال…',
+                    emptyTitle: 'مساعد الدعم الفني',
+                    emptyDesc: 'مرحباً، أنا وكيل الدعم الفني. أتبع عملية استكشاف الأخطاء المنظمة: تحديد النظام، البحث في قاعدة المعرفة، تقديم الحلول، والتصعيد إذا لزم الأمر.',
+                    inputPlaceholder: 'صف مشكلتك التقنية…',
+                    suggestions: [
+                        { prompt: "I can't log in to my account", label: '🔑 مشكلة تسجيل الدخول' },
+                        { prompt: 'My WiFi is not working', label: '📶 الواي فاي معطل' },
+                        { prompt: 'How do I install Microsoft Office?', label: '📦 تثبيت برنامج' },
+                        { prompt: 'VPN connection failed', label: '🔒 مساعدة VPN' },
+                        { prompt: 'My computer is slow', label: '🐌 جهاز بطيء' }
+                    ],
+                    sendAria: 'إرسال',
+                    clearTitle: 'مسح المحادثة',
+                    langToggleLabel: 'EN',
+                    askSystem: 'دعني استكشف المشكلة معك. أولاً، هل يمكنك إخباري:\n1. ما هو النظام أو الجهاز الذي تستخدمه؟ (مثل: كمبيوتر ويندوز، ماك، آيفون، جهاز توجيه الشبكة)\n2. ما هو البرنامج أو الخدمة المعنية؟ (مثل: Outlook، VPN، Office 365)\n3. يرجى وصف المشكلة بالتفصيل.',
+                    askSystemShort: 'يرجى إخباري عن النظام والمشكلة التي تواجهها.',
+                    identifying: '🔍 **جاري تحديد النظام...**',
+                    kbSearching: '📚 **جاري البحث في قاعدة المعرفة عن الحلول...**',
+                    solutionsHeader: '💡 **خطوات الحل**',
+                    solutionStep: (num, step) => `**الخطوة ${num}:** ${step}`,
+                    afterSolutions: 'يرجى تجربة هذه الخطوات وإخباري إذا تم حل المشكلة. رد بـ **تم الحل** أو **ما زالت المشكلة قائمة**.',
+                    escalatePrompt: 'آسف لسماع أن المشكلة ما زالت قائمة. سأقوم بإنشاء تقرير مفصل وتصعيده إلى فني الدعم.',
+                    reportGenerated: (report) => `📋 **تقرير الفني**\n\n${report}`,
+                    reportSent: (ref) => `✅ **تم تقديم التقرير!** المرجع #${ref}. سيقوم فني بمراجعة حالتك والتواصل معك قريباً.`,
+                    escalationCancelled: 'حسناً. أخبرني إذا كنت بحاجة إلى مزيد من المساعدة.',
+                    resolved: '✅ عظيم! أنا سعيد بأن المشكلة قد تم حلها. إذا كنت بحاجة إلى مساعدة في أي شيء آخر، فقط أخبرني.',
+                    noSystemInfo: 'أحتاج إلى مزيد من المعلومات حول نظامك لمساعدتك. يرجى إخباري بالجهاز أو البرنامج الذي تستخدمه ووصف المشكلة.',
+                    copyLabel: '📋 نسخ التفاصيل',
+                    copied: 'تم النسخ!',
+                }
+            };
+
+            // ---------- Knowledge Base (simulated) ----------
+            const KNOWLEDGE_BASE = {
+                'windows login': {
+                    system: 'Windows',
+                    issue: 'Login/Account',
+                    steps: [
+                        'Press Ctrl+Alt+Delete and select "Switch User" to try logging in again.',
+                        'Check if your Caps Lock is on – passwords are case-sensitive.',
+                        'Try logging in with your domain credentials (DOMAIN\\username).',
+                        'If you\'re locked out, wait 15 minutes for the lockout timer to reset.',
+                        'Contact your system administrator if the issue persists.'
+                    ]
+                },
+                'wifi network': {
+                    system: 'Network/WiFi',
+                    issue: 'Connectivity',
+                    steps: [
+                        'Restart your router by unplugging it for 30 seconds and plugging it back in.',
+                        'Forget the network on your device and reconnect by entering the password again.',
+                        'Check if other devices can connect – if not, the router may need a reset.',
+                        'Run the Windows Network Troubleshooter (Settings → Network & Internet → Status → Network troubleshooter).',
+                        'Check for any VPN or proxy settings that might interfere with the connection.'
+                    ]
+                },
+                'vpn connection': {
+                    system: 'VPN/Remote Access',
+                    issue: 'Connectivity',
+                    steps: [
+                        'Ensure your VPN client software is up to date.',
+                        'Verify your username and password – try re-entering them.',
+                        'Try connecting to a different VPN server (if available).',
+                        'Check your internet connection first – ensure you can browse the web without VPN.',
+                        'Temporarily disable your firewall/antivirus to test (re-enable after).'
+                    ]
+                },
+                'office 365 outlook': {
+                    system: 'Office 365/Outlook',
+                    issue: 'Email',
+                    steps: [
+                        'Check your internet connection – ensure you\'re online.',
+                        'Try restarting Outlook – close it and reopen.',
+                        'Check if your mailbox is full – delete old emails or empty the trash.',
+                        'Verify your email server settings (IMAP/SMTP).',
+                        'Try starting Outlook in Safe Mode (hold Ctrl while launching).'
+                    ]
+                },
+                'software installation': {
+                    system: 'Software/Application',
+                    issue: 'Installation',
+                    steps: [
+                        'Check system requirements – ensure your OS version and hardware meet the minimum specs.',
+                        'Download the installer from the official source (avoid third-party sites).',
+                        'Run the installer as Administrator (right-click → Run as administrator).',
+                        'Disable antivirus temporarily during installation (re-enable after).',
+                        'Restart your computer and try the installation again.'
+                    ]
+                },
+                'slow computer': {
+                    system: 'Windows/Mac',
+                    issue: 'Performance',
+                    steps: [
+                        'Close unused tabs and applications to free up memory.',
+                        'Restart your computer – this clears temporary files and refreshes system resources.',
+                        'Open Task Manager (Ctrl+Shift+Esc) and check for high CPU/memory processes – end those that are unnecessary.',
+                        'Disable startup programs you don\'t need (Task Manager → Startup).',
+                        'Run Disk Cleanup to remove temporary files and free up space.'
+                    ]
+                },
+                'printer hardware': {
+                    system: 'Printer/Hardware',
+                    issue: 'Hardware',
+                    steps: [
+                        'Ensure the printer is powered on and properly connected (check USB or network cable).',
+                        'Check paper and ink/toner levels – replace if low or empty.',
+                        'Run the hardware troubleshooter (Settings → Update & Security → Troubleshoot).',
+                        'Update printer drivers via Device Manager.',
+                        'Restart the printer and your computer.'
+                    ]
+                }
+            };
+
+            // ---------- Search Knowledge Base ----------
+            function searchKnowledgeBase(issue, system) {
+                const results = [];
+                const query = (issue + ' ' + system).toLowerCase();
+
+                for (const [key, entry] of Object.entries(KNOWLEDGE_BASE)) {
+                    const match = query.includes(key) ||
+                        query.includes(entry.system.toLowerCase()) ||
+                        query.includes(entry.issue.toLowerCase());
+                    if (match) {
+                        results.push({
+                            key: key,
+                            ...entry
+                        });
+                    }
+                }
+
+                // If no matches, return a generic result
+                if (results.length === 0) {
+                    const keywords = ['windows', 'wifi', 'vpn', 'outlook', 'office', 'install', 'slow', 'printer'];
+                    for (const kw of keywords) {
+                        if (query.includes(kw)) {
+                            for (const [key, entry] of Object.entries(KNOWLEDGE_BASE)) {
+                                if (key.includes(kw) || entry.system.toLowerCase().includes(kw)) {
+                                    results.push({ key: key, ...entry });
+                                    break;
+                                }
+                            }
+                            if (results.length > 0) break;
+                        }
+                    }
+                }
+
+                return results;
+            }
+
+            // ---------- Generate Technician Report ----------
+            function generateReport(sessionData) {
+                const now = new Date().toLocaleString();
+                return `**System:** ${sessionData.systemName || 'Not specified'}
+                **System Type:** ${sessionData.systemType || 'Not specified'}
+                **Issue:** ${sessionData.issueDescription || 'Not specified'}
+                **Solutions Attempted:** ${sessionData.attemptedSolutions.length > 0 ? sessionData.attemptedSolutions.join(', ') : 'None'}
+                **KB Results:** ${sessionData.kbResults.length > 0 ? sessionData.kbResults.map(r => r.key).join(', ') : 'No KB matches'}
+                **Timestamp:** ${now}
+                **Status:** Escalated to Technician - Requires further investigation.
+                **Recommendation:** Please review the issue and contact the user for additional details.`;
+            }
+
+            // ---------- Core Workflow Logic ----------
+            function processUserInput(input) {
+                const lang = currentLang;
+                const ui = UI[lang];
+                const text = input.trim();
+
+                // --- Workflow state machine ---
+                switch (session.step) {
+                    case 'initial':
+                        // Step 1: Identify the system
+                        session.step = 'identifying';
+                        session.issueDescription = text;
+                        return ui.askSystem;
+
+                    case 'identifying':
+                        // Parse system information from user input
+                        session.systemName = text;
+                        const typeKeywords = ['windows', 'mac', 'linux', 'iphone', 'android', 'router', 'printer', 'network',
+                            'server'
+                        ];
+                        for (const kw of typeKeywords) {
+                            if (text.toLowerCase().includes(kw)) {
+                                session.systemType = kw;
+                                break;
+                            }
+                        }
+                        if (!session.systemType) {
+                            session.systemType = 'Unknown system type';
+                        }
+
+                        // Step 2: Search Knowledge Base
+                        session.step = 'solutions';
+                        const kbResults = searchKnowledgeBase(session.issueDescription, session.systemName);
+                        session.kbResults = kbResults;
+
+                        // Build solutions from KB or fallback to generic
+                        if (kbResults.length > 0) {
+                            session.solutionSteps = kbResults[0].steps || [];
+                        } else {
+                            session.solutionSteps = [
+                                'Restart the system/application.',
+                                'Check for updates and install them.',
+                                'Verify your credentials or login details.',
+                                'Check system logs for error messages.',
+                                'Contact your IT support team for further assistance.'
+                            ];
+                        }
+                        session.solutionIndex = 0;
+
+                        // Step 3: Provide solutions
+                        let response = ui.identifying + '\n' +
+                            '**System Identified:** ' + session.systemName + '\n' +
+                            '**System Type:** ' + session.systemType + '\n\n' +
+                            ui.kbSearching + '\n\n' +
+                            ui.solutionsHeader + '\n';
+
+                        const stepsToShow = Math.min(session.solutionSteps.length, 4);
+                        for (let i = 0; i < stepsToShow; i++) {
+                            response += '\n' + ui.solutionStep(i + 1, session.solutionSteps[i]);
+                        }
+                        if (session.solutionSteps.length > 4) {
+                            response += '\n... (additional steps available upon request)';
+                        }
+
+                        response += '\n\n' + ui.afterSolutions;
+
+                        session.attemptedSolutions = session.solutionSteps.slice(0, stepsToShow);
+                        return response;
+
+                    case 'solutions':
+                        if (/resolved|fixed|solved|working|done|تم الحل|حل|يعمل|finished|ok|okay|yes/i.test(text)) {
+                            session.step = 'initial';
+                            session.ticketCreated = false;
+                            session = {
+                                step: 'initial',
+                                systemName: '',
+                                systemType: '',
+                                issueDescription: '',
+                                kbResults: [],
+                                solutionSteps: [],
+                                solutionIndex: 0,
+                                attemptedSolutions: [],
+                                report: null,
+                                ticketCreated: false
+                            };
+                            return ui.resolved;
+                        }
+
+                        if (/still having issues|not working|persists|still broken|failed|ما زالت المشكلة|لم يعمل|فشل|لا يعمل/i
+                            .test(text)) {
+                            // Step 4: Escalate
+                            session.step = 'escalating';
+
+                            const report = generateReport(session);
+                            session.report = report;
+
+                            let escalationMsg = ui.escalatePrompt + '\n\n';
+                            escalationMsg += ui.reportGenerated(report) + '\n\n';
+                            escalationMsg += 'Would you like me to submit this report to a technician? Reply with **yes** to submit, or **no** to cancel.';
+                            return escalationMsg;
+                        }
+
+                        if (/more|additional|next|extra|another|المزيد|إضافي|التالي|أخرى/i.test(text)) {
+                            const currentIdx = session.solutionIndex + 4;
+                            if (currentIdx < session.solutionSteps.length) {
+                                let moreResponse = '📋 **Additional Steps:**\n';
+                                const nextSteps = Math.min(3, session.solutionSteps.length - currentIdx);
+                                for (let i = 0; i < nextSteps; i++) {
+                                    moreResponse += '\n' + ui.solutionStep(currentIdx + i + 1, session.solutionSteps[currentIdx +
+                                        i]);
+                                    session.attemptedSolutions.push(session.solutionSteps[currentIdx + i]);
+                                }
+                                session.solutionIndex += nextSteps;
+                                moreResponse += '\n\n' + ui.afterSolutions;
+                                return moreResponse;
+                            } else {
+                                return 'I\'ve provided all the steps I have. Please try them and let me know if the issue is resolved. Reply with **resolved** or **still having issues**.';
+                            }
+                        }
+
+                        return 'Please reply with **resolved** if the issue is fixed, or **still having issues** if you need further help. You can also ask for **more** steps.';
+
+                    case 'escalating':
+                        if (/yes|y|نعم|send|submit|ok|okay|confirm|إرسال/i.test(text)) {
+                            const ref = 'RPT-' + String(Math.floor(100000 + Math.random() * 900000));
+                            sendReportToTelegram(session.report, ref)
+                                .then(sent => {
+                                    const msg = UI[currentLang].reportSent(ref) +
+                                        (sent ? '' : '\n⚠️ Report could not be sent via Telegram. Here are the details for manual submission:');
+                                    addMessage('agent', msg);
+                                    if (!sent) {
+                                        addMessageWithCopy('agent', session.report, UI[currentLang].copyLabel);
+                                    }
+                                })
+                                .catch(() => {
+                                    const msg = UI[currentLang].reportSent(ref) + '\n⚠️ Report could not be sent via Telegram. Please copy the details manually.';
+                                    addMessage('agent', msg);
+                                    addMessageWithCopy('agent', session.report, UI[currentLang].copyLabel);
+                                });
+
+                            session.step = 'initial';
+                            session.ticketCreated = false;
+                            session = {
+                                step: 'initial',
+                                systemName: '',
+                                systemType: '',
+                                issueDescription: '',
+                                kbResults: [],
+                                solutionSteps: [],
+                                solutionIndex: 0,
+                                attemptedSolutions: [],
+                                report: null,
+                                ticketCreated: false
+                            };
+                            return null;
+                        } else if (/no|n|لا|cancel|abort|إلغاء/i.test(text)) {
+                            session.step = 'initial';
+                            session.ticketCreated = false;
+                            session = {
+                                step: 'initial',
+                                systemName: '',
+                                systemType: '',
+                                issueDescription: '',
+                                kbResults: [],
+                                solutionSteps: [],
+                                solutionIndex: 0,
+                                attemptedSolutions: [],
+                                report: null,
+                                ticketCreated: false
+                            };
+                            return UI[currentLang].escalationCancelled;
+                        } else {
+                            return 'Please reply with **yes** to submit the report to a technician, or **no** to cancel.';
+                        }
+
+                    default:
+                        return 'I\'m not sure what happened. Let\'s start over. Please tell me about your issue.';
+                }
+            }
+
+            // ---------- Send Report to Telegram ----------
+            function sendReportToTelegram(report, ref) {
+                return new Promise((resolve, reject) => {
+                    if (!botToken || !chatId) {
+                        console.warn('Telegram not configured');
+                        resolve(false);
+                        return;
+                    }
+                    const message =
+                        `🖥️ **Technician Escalation Report**\n` +
+                        `*Reference:* #${ref}\n\n` +
+                        `${report}`;
+
+                    const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+                    const data = {
+                        chat_id: chatId,
+                        text: message,
+                        parse_mode: 'Markdown'
+                    };
+
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 10000);
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data),
+                        signal: controller.signal
+                    })
+                    .then(response => {
+                        clearTimeout(timeout);
+                        if (response.ok) {
+                            return response.json().then(() => resolve(true));
+                        } else {
+                            return response.json().then(err => {
+                                console.error('Telegram API error:', err);
+                                resolve(false);
+                            }).catch(() => resolve(false));
+                        }
+                    })
+                    .catch(error => {
+                        clearTimeout(timeout);
+                        console.warn('Fetch error:', error);
+                        resolve(false);
+                    });
+                });
+            }
+
+            // ---------- Message Helpers ----------
+            function addMessage(role, content) {
+                if (!content) return;
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                conversationHistory.push({ role, content, time, html: false });
+                renderMessages();
+            }
+
+            function addMessageWithCopy(role, content, buttonLabel) {
+                const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const msgObj = {
+                    role: role,
+                    content: content,
+                    time: time,
+                    html: true,
+                    copyLabel: buttonLabel
+                };
+                conversationHistory.push(msgObj);
+                renderMessages();
+            }
+
+            function renderMessages() {
+                const typingEl = typingIndicator;
+                const emptyEl = emptyState;
+
+                const children = messagesContainer.children;
+                const toRemove = [];
+                for (let i = 0; i < children.length; i++) {
+                    const el = children[i];
+                    if (el.id !== 'emptyState' && el.id !== 'typingIndicator') {
+                        toRemove.push(el);
+                    }
+                }
+                toRemove.forEach(el => el.remove());
+
+                if (conversationHistory.length === 0) {
+                    emptyState.style.display = 'flex';
+                } else {
+                    emptyState.style.display = 'none';
+                }
+
+                for (const msg of conversationHistory) {
+                    const isUser = msg.role === 'user';
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `message ${isUser ? 'user' : 'agent'}`;
+
+                    const avatar = document.createElement('div');
+                    avatar.className = `avatar ${isUser ? 'user-avatar' : 'agent-avatar-small'}`;
+                    avatar.textContent = isUser ? 'U' : '🖥️';
+
+                    const bubble = document.createElement('div');
+                    bubble.className = 'bubble';
+
+                    const textNode = document.createElement('span');
+                    if (msg.html) {
+                        textNode.innerHTML = msg.content.replace(/\n/g, '<br>');
+                    } else {
+                        textNode.innerHTML = msg.content.replace(/\n/g, '<br>');
+                    }
+                    bubble.appendChild(textNode);
+
+                    if (msg.copyLabel) {
+                        const copyBtn = document.createElement('button');
+                        copyBtn.className = 'copy-btn';
+                        copyBtn.innerHTML = `<i class="fas fa-copy"></i> ${msg.copyLabel}`;
+                        copyBtn.addEventListener('click', () => {
+                            let plainText = msg.content.replace(/\*\*/g, '').replace(/\n/g, '\n');
+                            const textToCopy = plainText;
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(textToCopy).then(() => {
+                                    showCopyFeedback(copyBtn);
+                                }).catch(() => {
+                                    fallbackCopy(textToCopy, copyBtn);
+                                });
+                            } else {
+                                fallbackCopy(textToCopy, copyBtn);
+                            }
+                        });
+                        bubble.appendChild(copyBtn);
+                    }
+
+                    const timeEl = document.createElement('span');
+                    timeEl.className = 'msg-time';
+                    timeEl.textContent = msg.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    bubble.appendChild(timeEl);
+
+                    wrapper.appendChild(avatar);
+                    wrapper.appendChild(bubble);
+
+                    messagesContainer.insertBefore(wrapper, typingIndicator);
+                }
+
+                scrollToBottom();
+            }
+
+            function showCopyFeedback(btn) {
+                const orig = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i> ' + getUIText('copied');
+                setTimeout(() => {
+                    btn.innerHTML = orig;
+                }, 2000);
+            }
+
+            function fallbackCopy(text, btn) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                try {
+                    document.execCommand('copy');
+                    showCopyFeedback(btn);
+                } catch (e) {
+                    alert('Could not copy text. Please select and copy manually.');
+                }
+                document.body.removeChild(textarea);
+            }
+
+            function showTyping(show) {
+                typingIndicator.classList.toggle('active', show);
+                if (show) scrollToBottom();
+            }
+
+            function scrollToBottom() {
+                requestAnimationFrame(() => {
+                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                });
+            }
+
+            // ---------- UI Helpers ----------
+            function getUIText(key) {
+                return UI[currentLang][key] || UI['en'][key];
+            }
+
+            function updateUILanguage() {
+                const ui = UI[currentLang];
+                agentName.textContent = ui.agentName;
+                statusText.textContent = (statusDot.className.includes('offline')) ? ui.statusOffline : ui.statusOnline;
+                emptyTitle.textContent = ui.emptyTitle;
+                emptyDesc.textContent = ui.emptyDesc;
+                messageInput.placeholder = ui.inputPlaceholder;
+                langToggle.textContent = ui.langToggleLabel;
+
+                suggestionsContainer.innerHTML = '';
+                ui.suggestions.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.dataset.prompt = s.prompt;
+                    btn.textContent = s.label;
+                    btn.addEventListener('click', () => {
+                        messageInput.value = s.prompt;
+                        messageInput.dispatchEvent(new Event('input'));
+                        sendMessage();
+                    });
+                    suggestionsContainer.appendChild(btn);
+                });
+
+                app.classList.toggle('rtl', currentLang === 'ar');
+            }
+
+            // ---------- Main Send Function ----------
+            function sendMessage() {
+                const text = messageInput.value.trim();
+                if (!text) return;
+
+                addMessage('user', text);
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+                sendBtn.disabled = true;
+                emptyState.style.display = 'none';
+
+                showTyping(true);
+
+                setTimeout(() => {
+                    const response = processUserInput(text);
+                    showTyping(false);
+                    if (response) {
+                        addMessage('agent', response);
+                    }
+                }, 300);
+            }
+
+            // ---------- Language Toggle ----------
+            langToggle.addEventListener('click', () => {
+                currentLang = currentLang === 'en' ? 'ar' : 'en';
+                updateUILanguage();
+                statusText.textContent = (statusDot.className.includes('offline')) ?
+                    UI[currentLang].statusOffline :
+                    UI[currentLang].statusOnline;
+            });
+
+            // ---------- Event Listeners ----------
+            messageInput.addEventListener('input', () => {
+                messageInput.style.height = 'auto';
+                messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
+                sendBtn.disabled = !messageInput.value.trim();
+            });
+
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (messageInput.value.trim()) sendMessage();
+                }
+            });
+
+            sendBtn.addEventListener('click', sendMessage);
+
+            clearBtn.addEventListener('click', () => {
+                if (conversationHistory.length === 0) return;
+                if (confirm(getUIText('clearTitle'))) {
+                    conversationHistory = [];
+                    session = {
+                        step: 'initial',
+                        systemName: '',
+                        systemType: '',
+                        issueDescription: '',
+                        kbResults: [],
+                        solutionSteps: [],
+                        solutionIndex: 0,
+                        attemptedSolutions: [],
+                        report: null,
+                        ticketCreated: false
+                    };
+                    renderMessages();
+                    emptyState.style.display = 'flex';
+                }
+            });
+
+            // ---------- Init ----------
+            currentLang = 'en';
+            updateUILanguage();
+            statusText.textContent = UI.en.statusOnline;
+            messageInput.focus();
+
+            // Online status simulation
+            let statusOnline = true;
+            setInterval(() => {
+                if (Math.random() > 0.92) {
+                    statusOnline = !statusOnline;
+                    statusDot.className = `status-dot ${statusOnline ? '' : 'offline'}`;
+                    statusText.textContent = statusOnline ?
+                        UI[currentLang].statusOnline :
+                        UI[currentLang].statusOffline;
+                    if (!statusOnline) {
+                        setTimeout(() => {
+                            statusOnline = true;
+                            statusDot.className = 'status-dot';
+                            statusText.textContent = UI[currentLang].statusOnline;
+                        }, 1800);
+                    }
+                }
+            }, 12000);
+
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+                    e.preventDefault();
+                    messageInput.focus();
+                }
+            });
+
+            // Expose helpers
+            window.__itSupport = {
+                history: conversationHistory,
+                session: session,
+                clear: () => {
+                    conversationHistory = [];
+                    session = {
+                        step: 'initial',
+                        systemName: '',
+                        systemType: '',
+                        issueDescription: '',
+                        kbResults: [],
+                        solutionSteps: [],
+                        solutionIndex: 0,
+                        attemptedSolutions: [],
+                        report: null,
+                        ticketCreated: false
+                    };
+                    renderMessages();
+                    emptyState.style.display = 'flex';
+                },
+                language: currentLang,
+                toggleLang: () => langToggle.click(),
+                setTelegram: (token, chat) => {
+                    botToken = token;
+                    chatId = chat;
+                    localStorage.setItem('telegramBotToken', token);
+                    localStorage.setItem('telegramChatId', chat);
+                },
+                setDeepSeek: (key, model) => {
+                    deepseekApiKey = key;
+                    deepseekModel = model;
+                    localStorage.setItem('deepseekApiKey', key);
+                    localStorage.setItem('deepseekModel', model);
+                }
+            };
+
+            console.log('🖥️ IT Support Agent with Structured Problem-Solving Workflow');
+            console.log('📋 Steps: 1. Identify System → 2. Search KB → 3. Provide Solutions → 4. Escalate if needed');
+            console.log('🧠 Using DeepSeek V4 model: ' + deepseekModel);
+
+            renderMessages();
+        })();
+    </script>
+
+</body>
+</html>
